@@ -40,6 +40,60 @@ void AObserverCamera::RemoveUniqueViewTarget(const AController* ViewTarget)
 void AObserverCamera::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// !) Temp code for testing
+	TArray<AActor*> Characters;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADomesticWarfareCharacter::StaticClass(), Characters);
+	
+	for (AActor* Character : Characters)
+	{
+		ViewTargets.AddUnique(Character->GetInstigatorController());
+	}
+}
+
+FVector AObserverCamera::CalcBoundingBoxAroundViewTargets()
+{
+	// The below calculation can be done using GetActorArrayBounds(ViewTargets, false, Center, Extent) 
+	// from UGameplayStatics but would require removing the ViewTargets Const and converting to raw ptr.
+	FBox ActorBoundingBox(EForceInit::ForceInit);
+	
+	for (auto ViewTarget : ViewTargets)
+	{
+		if (IsValid(ViewTarget))
+		{
+			ActorBoundingBox += ViewTarget->GetCharacter()->GetActorLocation();
+		}
+	}
+	
+	if (ActorBoundingBox.IsValid)
+	{
+		FVector Center = ActorBoundingBox.GetCenter();
+		FVector Extent = ActorBoundingBox.GetExtent(); // Half-size
+
+		// Move the camera to focus on center
+        SetActorLocation(Center);
+
+		return Extent;
+	}
+
+	return FVector::ZeroVector;
+}
+
+void AObserverCamera::AdjustCameraZoomToFitTargets(FVector ViewTargetsExtent, float DeltaTime)
+{
+	if (ViewTargetsExtent == FVector::ZeroVector)
+	{
+		UE_LOG(DWLog, Warning, TEXT("Failed to calculate the bounds encompassing the view targets."));
+		return;
+	}
+
+	// Adjust spring arm len
+	float DesiredArmLength = ViewTargetsExtent.Size() * ZoomFactor; 
+	CameraSpringArm->TargetArmLength = FMath::Clamp(DesiredArmLength, MinZoom, MaxZoom);
+	
+	// Smooth Adjustments
+	float SmoothedLength = FMath::FInterpTo(CameraSpringArm->TargetArmLength, DesiredArmLength, DeltaTime, ZoomInterpSpeed);
+	CameraSpringArm->TargetArmLength = SmoothedLength;
 }
 
 // Called every frame
@@ -55,6 +109,14 @@ void AObserverCamera::Tick(float DeltaTime)
 		return;
 	}
 
-	TArray<AActor*> TargetActors;
-	UGameplayStatics::GetAllActorsOfClass(World, ADomesticWarfareCharacter::StaticClass(), TargetActors);
+	AdjustCameraSettings(DeltaTime);
+}
+
+
+void AObserverCamera::AdjustCameraSettings(float DeltaTime)
+{
+	FVector Extent = CalcBoundingBoxAroundViewTargets();
+
+	if (EnableZoomAdjustments)
+		AdjustCameraZoomToFitTargets(Extent, DeltaTime);
 }
