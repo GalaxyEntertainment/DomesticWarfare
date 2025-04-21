@@ -17,9 +17,7 @@ public class DomesticWarfare : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
-			"NinjaGAS",
-			"NinjaInput"
-			
+			"NinjaGAS"
 		});
 	}
 }

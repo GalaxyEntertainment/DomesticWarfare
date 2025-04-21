@@ -23,17 +23,19 @@ private:
 	TObjectPtr<UCameraComponent> Camera;
 	
 public:	
-	// Sets default values for this actor's properties
 	AObserverCamera();
 
 	TObjectPtr<const UCameraComponent> GetCameraComponent() const { return Camera; }
+	void AddUniqueViewTarget(const AController* ViewTarget);
+	void RemoveUniqueViewTarget(const AController* ViewTarget);
 
 protected:
-	// Called when the game starts or when spawned
+	UPROPERTY()
+	TArray<TObjectPtr<const AController>> ViewTargets;
+	
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 };

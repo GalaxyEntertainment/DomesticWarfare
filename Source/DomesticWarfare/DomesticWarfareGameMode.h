@@ -16,11 +16,19 @@ public:
 	ADomesticWarfareGameMode();
 
 protected:
+	UPROPERTY()
+	TArray<TObjectPtr<APlayerController>> LoggedInPlayerControllers;
+
+	UPROPERTY()
 	TWeakObjectPtr<AObserverCamera> ObserverCamera;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
+	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual void Logout(AController* Exiting) override;
+	
+	bool SetupObserverCamera();
 };
 
 
